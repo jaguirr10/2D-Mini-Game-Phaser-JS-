@@ -1,1 +1,1 @@
-# 2D-Mini-Game-Phaser-JS-
+# 2D Mini Game (Phaser JS)
