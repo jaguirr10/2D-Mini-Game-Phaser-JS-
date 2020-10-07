@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>2D Mini Game</title>
+        
+        
+     <style>
+body {
+ background: #348F50;  /* fallback for old browsers */
+background: -webkit-linear-gradient(to right, #56B4D3, #348F50);  /* Chrome 10-25, Safari 5.1-6 */
+background: linear-gradient(to right, #56B4D3, #348F50); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+margin:0;    
+    
+}
+</style> 
+        
+    </head>
+    <body>
+        
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.24.1/phaser.min.js"></script>
+        
+        
+    <script>
+        
+        // Declare objects
+var player;
+var enemies = [];
+var enemiesToSpawn = 27;
+var enemiesLeft = enemiesToSpawn;
+var enemiesAreSafe = true;
+
+  // add music  
+var music;
+ var S1;       
+        
+
+// HP
+var hitPoints = 5;
+var hitPointsString = "HP: ";
+var hitPointsText;
+
+// score
+var score = 0;
+var scoreString = "Score: ";
+var scoreText;
+
+var introText;
+
+// Game started boolean
+var gameStarted;
+
+// Game ended boolean
+var finishedGame;
+
+var gamePlay = new Phaser.Class({
+  // Define scene
+  Extends: Phaser.Scene,
+  initialize: function GamePlay() {
+    Phaser.Scene.call(this, { key: "GamePlay" });
+  },
+
+  /*--- THE PRELOAD FUNCTION: LOAD THE ASSETS ---*/
+
+ 
+      
+      
+    preload: function() {
+        
+        
+        
+      //  Firefox doesn't support mp3 files, so use ogg
+        
+        // Load background Music
+   this.load.audio("music",["T1.mp3", "T1.ogg"]);
+         
+           // Load Sound Effects
+        this.load.audio("S1", ["S1.mp3","S1.ogg"]);
+      
+        
+        
+    // Preload images
+    this.load.image(
+      "BG",
+      "BG.png"
+    );
+    this.load.spritesheet(
+      "dude",
+      "dude.png",
+      {
+        frameWidth: 32,
+        frameHeight: 48
+      }
+    );
+    this.load.spritesheet(
+      "baddie",
+      "baddie.png",
+      {
+        frameWidth: 32,
+        frameHeight: 32
+      }
+    );
+  },
+    
+    
+    
+    
+
+  /*--- THE CREATE FUNCTION: SET UP THE SCENE ON LOAD ---*/
+
+  create: function () {
+      
+      
+    //Restart the game 
+        
+         //this.input.once("pointerdown", function (event) {
+
+           // this.scene.restart();
+
+       //}, this); 
+//});
+    
+    // Create background
+    this.physics.add.sprite(config.width / 2, config.height / 2, "BG");
+      
+      
+     
+      
+      
+      
+      
+
+    // Create player
+    player = this.physics.add.sprite(32, config.height - 150, "dude");
+    // Create animations for player
+    this.anims.create({
+      key: "left",
+      frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 0 }),
+      repeat: -1 });
+
+    this.anims.create({
+      key: "down",
+      frames: this.anims.generateFrameNumbers("dude", { start: 1, end: 1 }),
+      repeat: -1 });
+
+    this.anims.create({
+      key: "right",
+      frames: this.anims.generateFrameNumbers("dude", { start: 2, end: 2 }) });
+
+    this.anims.create({
+      key: "up",
+      frames: this.anims.generateFrameNumbers("dude", { start: 3, end: 3 }) });
+
+
+    // Player should collide with edges of the screen
+    player.setCollideWorldBounds(true);
+
+    // Keyboard input
+    cursors = this.input.keyboard.createCursorKeys();
+
+    // Start enemies as unsafe
+    enemiesAreSafe = false;
+
+    // Create enemies
+    enemies = this.physics.add.staticGroup({
+      key: "baddie",
+      repeat: enemiesToSpawn });
+        
+        
+        // create music and sounds
+      
+        this.S1 = this.sound.add("S1");
+        
+        this.music = this.sound.add("music");
+        
+        var musicConfig = {
+            
+            mute: false,
+            volume: 0.1,
+            rate:1,
+            detune:0,
+            seek:0,
+            loop:false,
+            delay:0
+        }
+          this.music.play(musicConfig);
+
+
+    // Go thru each child and make sure it's on screen
+    enemies.children.iterate(function (enemy) {
+      enemy.setX(Phaser.Math.FloatBetween(32, config.width - 32));
+      enemy.setY(Phaser.Math.FloatBetween(32, config.height - 32));
+      if (enemy.x > config.width - 32) {
+        enemy.setX(config.width - 48);
+      } else if (enemy.x < 32) {
+        enemy.setX(48);
+      }
+
+      if (enemy.y > config.height - 32) {
+        enemy.setY(config.height - 48);
+      } else if (enemy.y < 32) {
+        enemy.setY(48);
+      }
+    });
+
+    // Create animations for enemy
+    this.anims.create({
+      key: "safe",
+      frames: this.anims.generateFrameNumbers("baddie", { start: 1, end: 1 }) });
+
+
+    this.anims.create({
+      key: "unsafe",
+      frames: this.anims.generateFrameNumbers("baddie", { start: 0, end: 0 }) });
+        
+        
+        
+
+
+    // Update the physics colliders
+    enemies.refresh();
+
+    // Generate text for score
+    scoreText = this.add.text(32, 24, scoreString + score);
+    scoreText.visible = false;
+
+    // Generate text for HP
+    hitPointsText = this.add.text(32, 64, hitPointsString + hitPoints);
+    hitPointsText.visible = false;
+
+    // Generate intro text
+    introText = this.add.text(
+    32,
+    24,
+    "Clear all the baddies when they're weak!  \nClick to start playing, use the keyboard to move.  \n\n(Click the white area around the game to make movement work) \n\n lower volume ");
+
+
+    // Add game start click event
+    this.input.on("pointerdown", function () {
+      if (!gameStarted) {
+        startGame();
+      }
+    });
+
+    // Generate timer
+    timedEvent = this.time.addEvent({
+      delay: 1000,
+      callback: switchEnemyState,
+      callbackScope: this,
+      loop: true });
+
+
+    // On overlap, run function
+    this.physics.add.overlap(player, enemies, collideWithEnemy, null, this);
+  },
+
+  /*--- THE UPDATE FUNCTION: MAKE CHANGES TO THE GAME OVER TIME ---*/
+
+  update: function () {
+    // Update objects & variables
+    player.setVelocity(0, 0);
+    if (gameStarted && !finishedGame) {
+      if (cursors.left.isDown) {
+        //  Move to the left
+        player.setVelocityX(-150);
+        player.anims.play("left");
+      } else if (cursors.right.isDown) {
+        //  Move to the right
+        player.setVelocityX(150);
+        player.anims.play("right");
+      }
+
+      if (cursors.up.isDown) {
+        //  Move up
+        player.setVelocityY(-150);
+        player.anims.play("up");
+      } else if (cursors.down.isDown) {
+        //  Move down
+        player.setVelocityY(150);
+        player.anims.play("down");
+      }
+
+      // Update score
+      scoreText.setText(scoreString + score);
+      hitPointsText.setText(hitPointsString + hitPoints);
+    }
+  } });
+
+
+/*--- GLOBAL FUNCTIONS ---*/
+
+   
+        
+        
+// Change enemies from safe to unsafe
+function switchEnemyState() {
+  if (gameStarted && !finishedGame) {
+    if (enemiesAreSafe == false) {
+      enemiesAreSafe = true;
+      enemies.children.iterate(function (enemy) {
+        enemy.anims.play("safe");
+        // Set to safe
+      });
+    } else {
+      enemiesAreSafe = false;
+      enemies.children.iterate(function (enemy) {
+        enemy.anims.play("unsafe");
+        // Set to unsafe
+      });
+    }
+  }
+}
+
+// Collision with enemy
+function collideWithEnemy(player, enemy) {
+  if (gameStarted && !finishedGame) {
+      
+    if (enemiesAreSafe == false) {
+        this.sound.play("S1");
+      // unsafe hit
+      hitPoints--;
+      
+    } else {
+      // safe hit
+        
+      score++;
+      
+    }
+      
+      
+      
+
+    // Make enemy inactive
+    enemy.disableBody(true, true);
+    
+    enemiesLeft--;
+
+    // End game when necessary
+    if (hitPoints <= 0) {
+     
+      killGame();
+        
+      introText.setText("Game Over! Rerun to play again.");
+    } else if (hitPoints > 0 && enemiesLeft < 0) {
+      killGame();
+        
+      introText.setText("Great job, you won! Rerun to play again.");
+        
+    
+    }
+  }
+}
+
+// Start the game
+function startGame() {
+  introText.visible = false;
+  scoreText.visible = true;
+  hitPointsText.visible = true;
+  gameStarted = true;
+  finishedGame = false;
+}
+        
+       
+    
+        
+
+// End the game
+function killGame() {
+  finishedGame = true;
+    game.sound.mute = true;
+    
+ player.setVelocity(0, 0);
+    
+  introText.visible = true;
+
+  scoreText.visible = false;
+  hitPointsText.visible = false;
+    
+   
+    
+     
+    
+}
+        
+         
+
+/*--- CONFIG + RUNNING THE GAME ---*/
+
+//Define the game config once everything else is defined
+var config = {
+  type: Phaser.AUTO,
+  width: 640,
+  height: 480,
+  pixelArt: true,
+  physics: {
+    default: "arcade",
+    arcade: {
+      gravity: { y: 0 },
+      debug: false } },
+
+
+  scene: gamePlay };
+
+
+//Instantiate the game with the config
+var game = new Phaser.Game(config);
+
+    </script>
+        
+        
+         
+        
+        
+    </body>
+</html>
