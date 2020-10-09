@@ -405,6 +405,14 @@ var config = {
 
 //Instantiate the game with the config
 var game = new Phaser.Game(config);
+        
+        
+  window.addEventListener('resize', function(){
+    game.height = window.innerHeight;
+    game.width = window.innerWidth;
+})
+      
+        
 
     </script>
         
